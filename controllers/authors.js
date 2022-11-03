@@ -1,5 +1,6 @@
 // Dependencies
 const express = require("express");
+const Article = require("../models/article");
 const router = express.Router();
 const Author = require("../models/author")
 
@@ -22,11 +23,23 @@ router.get("/new", (req, res) => {
 
 // Delete
 router.delete("/:id", (req, res) => {
-  Author.findByIdAndRemove(req.params.id, () => {
-    res.redirect("/authors");
-  });
-});
-
+  Author.findByIdAndRemove(req.params.id, (err, foundAuthor) => {
+    const articleIds = []
+    for (let i = 0; i < foundAuthor.articles.length; i++) {
+      articleIds.push(foundAuthor.articles[i]._id)
+    }
+    Article.remove(
+      {
+        _id: {
+          $in: articleIds,
+        },
+      },
+      (err, data) => {
+        res.redirect("/authors")
+      }
+    )
+  })
+})
 // Update
 router.put("/:id", (req, res) => {
   Author.findByIdAndUpdate(req.params.id, req.body, () => {
@@ -54,6 +67,7 @@ router.get("/:id/edit", (req, res) => {
 
 // Show
 router.get("/:id", (req, res) => {
+ 
   Author.findById(req.params.id, (err, foundAuthor) => {
     if (err) console.log(err);
     res.render("authors/show.ejs", {
